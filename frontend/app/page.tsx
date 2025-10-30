@@ -72,7 +72,16 @@ const AMRSystem: React.FC = () => {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to generate signal");
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (Array.isArray(errorData.detail)) {
+          const errorMessages = errorData.detail.map((err: { loc: string[]; msg: string }) => 
+            `${err.loc.join('.')}: ${err.msg}`
+          ).join(', ');
+          throw new Error(`Validation error: ${errorMessages}`);
+        }
+        throw new Error(errorData.detail || "Failed to generate signal");
+      }
 
       const data = await response.json();
       setSignalData(data.signal_data);
@@ -97,7 +106,16 @@ const AMRSystem: React.FC = () => {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to train classifier");
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (Array.isArray(errorData.detail)) {
+          const errorMessages = errorData.detail.map((err: { loc: string[]; msg: string }) => 
+            `${err.loc.join('.')}: ${err.msg}`
+          ).join(', ');
+          throw new Error(`Validation error: ${errorMessages}`);
+        }
+        throw new Error(errorData.detail || "Failed to train classifier");
+      }
 
       const data = await response.json();
       setTrainingResult(data);
@@ -128,6 +146,13 @@ const AMRSystem: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        // Handle Pydantic validation errors (422) which return an array
+        if (Array.isArray(errorData.detail)) {
+          const errorMessages = errorData.detail.map((err: { loc: string[]; msg: string }) => 
+            `${err.loc.join('.')}: ${err.msg}`
+          ).join(', ');
+          throw new Error(`Validation error: ${errorMessages}`);
+        }
         throw new Error(errorData.detail || "Failed to classify signal");
       }
 
@@ -299,7 +324,7 @@ const AMRSystem: React.FC = () => {
                     <select
                       value={channelType}
                       onChange={(e) => setChannelType(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full text-gray-500 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="AWGN">AWGN</option>
                       <option value="Rayleigh">Rayleigh Fading</option>
@@ -340,7 +365,7 @@ const AMRSystem: React.FC = () => {
                     <select
                       value={channelType}
                       onChange={(e) => setChannelType(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full text-gray-500 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="AWGN">AWGN</option>
                       <option value="Rayleigh">Rayleigh Fading</option>

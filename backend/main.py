@@ -22,8 +22,12 @@ class SignalRequest(BaseModel):
     snr_db: float = 5.0
     channel_type: str = "AWGN"
 
+class ComplexNumber(BaseModel):
+    real: float
+    imag: float
+
 class ClassificationRequest(BaseModel):
-    signal_data: List[complex]
+    signal_data: List[ComplexNumber]
     channel_type: str = "AWGN"
 
 class TrainingRequest(BaseModel):
@@ -311,9 +315,8 @@ def classify_signal(request: ClassificationRequest):
         if classifier.optimized_weights is None:
             raise HTTPException(status_code=400, detail="Classifier not trained")
         
-        # Convert complex signal
-        signal = np.array([complex(s['real'], s['imag']) if isinstance(s, dict) 
-                          else complex(s) for s in request.signal_data])
+        # Convert signal data from ComplexNumber objects to numpy complex array
+        signal = np.array([complex(s.real, s.imag) for s in request.signal_data])
         
         # Extract features
         extractor = CumulantExtractor()

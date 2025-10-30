@@ -75,9 +75,12 @@ const AMRSystem: React.FC = () => {
       if (!response.ok) {
         const errorData = await response.json();
         if (Array.isArray(errorData.detail)) {
-          const errorMessages = errorData.detail.map((err: { loc: string[]; msg: string }) => 
-            `${err.loc.join('.')}: ${err.msg}`
-          ).join(', ');
+          const errorMessages = errorData.detail
+            .map(
+              (err: { loc: string[]; msg: string }) =>
+                `${err.loc.join(".")}: ${err.msg}`
+            )
+            .join(", ");
           throw new Error(`Validation error: ${errorMessages}`);
         }
         throw new Error(errorData.detail || "Failed to generate signal");
@@ -109,9 +112,12 @@ const AMRSystem: React.FC = () => {
       if (!response.ok) {
         const errorData = await response.json();
         if (Array.isArray(errorData.detail)) {
-          const errorMessages = errorData.detail.map((err: { loc: string[]; msg: string }) => 
-            `${err.loc.join('.')}: ${err.msg}`
-          ).join(', ');
+          const errorMessages = errorData.detail
+            .map(
+              (err: { loc: string[]; msg: string }) =>
+                `${err.loc.join(".")}: ${err.msg}`
+            )
+            .join(", ");
           throw new Error(`Validation error: ${errorMessages}`);
         }
         throw new Error(errorData.detail || "Failed to train classifier");
@@ -148,9 +154,12 @@ const AMRSystem: React.FC = () => {
         const errorData = await response.json();
         // Handle Pydantic validation errors (422) which return an array
         if (Array.isArray(errorData.detail)) {
-          const errorMessages = errorData.detail.map((err: { loc: string[]; msg: string }) => 
-            `${err.loc.join('.')}: ${err.msg}`
-          ).join(', ');
+          const errorMessages = errorData.detail
+            .map(
+              (err: { loc: string[]; msg: string }) =>
+                `${err.loc.join(".")}: ${err.msg}`
+            )
+            .join(", ");
           throw new Error(`Validation error: ${errorMessages}`);
         }
         throw new Error(errorData.detail || "Failed to classify signal");

@@ -58,6 +58,7 @@ app.add_middleware(
 ```
 
 **Purpose:**
+
 - Creates FastAPI application instance
 - Enables CORS to allow frontend (localhost:3000) to call backend (localhost:8000)
 - In production, you should restrict `allow_origins` to specific domains
@@ -69,6 +70,7 @@ app.add_middleware(
 ### Why Pydantic?
 
 Pydantic provides:
+
 1. **Automatic validation**: Ensures data types are correct
 2. **JSON serialization**: Converts Python objects to/from JSON
 3. **API documentation**: Auto-generates OpenAPI/Swagger docs
@@ -87,12 +89,14 @@ class SignalRequest(BaseModel):
 **Usage:** Request body for `/generate_signal` endpoint
 
 **Validation:**
+
 - `modulation_type` must be a string
 - `num_samples` must be an integer (defaults to 1024)
 - `snr_db` must be a float (defaults to 5.0)
 - `channel_type` must be a string (defaults to "AWGN")
 
 **Example Valid Request:**
+
 ```json
 {
   "modulation_type": "QPSK",
@@ -111,8 +115,9 @@ class ComplexNumber(BaseModel):
 **Purpose:** Represents a complex number in JSON-serializable format
 
 **Why Needed:** Python's `complex` type cannot be directly serialized to JSON. This model allows us to send complex signals as:
+
 ```json
-{"real": 0.707, "imag": 0.707}
+{ "real": 0.707, "imag": 0.707 }
 ```
 
 Instead of trying to send `0.707+0.707j` (which would fail).
@@ -126,6 +131,7 @@ class ClassificationRequest(BaseModel):
 **Usage:** Request body for `/classify` endpoint
 
 **Structure:**
+
 - `signal_data`: Array of complex numbers (the signal to classify)
 - `channel_type`: Channel model used (should match training)
 
@@ -139,6 +145,7 @@ class TrainingRequest(BaseModel):
 **Usage:** Request body for `/train_classifier` endpoint
 
 **Parameters:**
+
 - `num_samples`: How many samples to generate for each modulation type
 - `snr_range`: [min_SNR, max_SNR] - system uses the average
 - `channel_type`: Which channel model to use for training
@@ -160,7 +167,6 @@ class ModulationGenerator:
 1. `bits = np.random.randint(0, 2, num_samples)`
    - Generates random binary data: [0, 1, 1, 0, 1, 0, ...]
    - `randint(0, 2)` gives 0 or 1 with equal probability
-   
 2. `return 2 * bits - 1 + 0j`
    - Maps bits to constellation:
      - If bit = 0: `2*0 - 1 = -1` → -1+0j
@@ -181,12 +187,10 @@ class ModulationGenerator:
 1. `symbols = np.random.randint(0, 4, num_samples)`
    - Generates random symbols: [2, 0, 3, 1, 2, ...]
    - Each symbol represents 2 bits (2^2 = 4 possibilities)
-   
 2. `constellation = np.array([1+1j, -1+1j, 1-1j, -1-1j]) / np.sqrt(2)`
    - Defines 4 constellation points at 45°, 135°, -45°, -135°
    - Division by √2 normalizes to unit average power
    - Result: [0.707+0.707j, -0.707+0.707j, 0.707-0.707j, -0.707-0.707j]
-   
 3. `return constellation[symbols]`
    - Maps each symbol to its constellation point
    - If symbols = [2, 0, 3]:
@@ -212,13 +216,10 @@ class ModulationGenerator:
 
 1. `symbols = np.random.randint(0, 16, num_samples)`
    - Random symbols from 0-15 (4 bits per symbol)
-   
 2. `i_vals = np.array([-3, -1, 1, 3])`
    - In-phase component values (4 levels)
-   
 3. `q_vals = np.array([-3, -1, 1, 3])`
    - Quadrature component values (4 levels)
-   
 4. ```python
    for i in i_vals:
        for q in q_vals:
@@ -226,12 +227,12 @@ class ModulationGenerator:
    ```
    - Creates all 16 combinations (4×4 grid)
    - Example points: -3-3j, -3-1j, -3+1j, -3+3j, ...
-   
 5. `constellation = np.array(constellation) / np.sqrt(10)`
    - Normalizes to unit average power
    - √10 is the normalization factor for 16-QAM grid
 
 **Why √10?**
+
 ```
 Average power = mean(|points|²)
 For 16-QAM: (-3)² + (-1)² + 1² + 3² = 20
@@ -251,7 +252,7 @@ class Channel:
         signal_power = np.mean(np.abs(signal)**2)
         snr_linear = 10**(snr_db/10)
         noise_power = signal_power / snr_linear
-        noise = np.sqrt(noise_power/2) * (np.random.randn(len(signal)) + 
+        noise = np.sqrt(noise_power/2) * (np.random.randn(len(signal)) +
                                           1j*np.random.randn(len(signal)))
         return signal + noise
 ```
@@ -263,28 +264,23 @@ class Channel:
    - `np.abs(signal)` gives magnitude: |signal|
    - Squaring gives power: |signal|²
    - `np.mean()` averages over all samples
-   
 2. `snr_linear = 10**(snr_db/10)`
    - Converts SNR from dB to linear scale
    - Formula: SNR_linear = 10^(SNR_dB/10)
    - Example: 10 dB → 10^(10/10) = 10^1 = 10
-   
 3. `noise_power = signal_power / snr_linear`
    - Calculates required noise power
    - SNR = Signal Power / Noise Power
    - Therefore: Noise Power = Signal Power / SNR
-   
 4. `noise = np.sqrt(noise_power/2) * (...)`
    - Creates complex Gaussian noise
    - `noise_power/2` splits power between real and imaginary parts
    - `np.random.randn()` generates standard normal distribution (mean=0, std=1)
    - Scaling by `np.sqrt(noise_power/2)` gives correct variance
-   
 5. `np.random.randn(len(signal)) + 1j*np.random.randn(len(signal))`
    - Real part: `np.random.randn(len(signal))`
    - Imaginary part: `1j*np.random.randn(len(signal))`
    - Result: Complex white Gaussian noise
-   
 6. `return signal + noise`
    - Adds noise to signal
    - Models wireless channel with additive noise
@@ -304,17 +300,16 @@ class Channel:
    - Complex Gaussian with zero mean
    - Division by √2 normalizes power to 1
    - Each sample has random amplitude and phase
-   
 2. `faded_signal = h * signal`
    - Applies fading to signal
    - Element-wise multiplication
    - Each symbol experiences different channel gain
-   
 3. `return Channel.add_awgn(faded_signal, snr_db)`
    - Adds AWGN noise on top of fading
    - Models realistic wireless channel
 
 **Rayleigh Fading Physics:**
+
 - Models multipath propagation
 - Signal reaches receiver via multiple paths
 - Paths combine constructively/destructively
@@ -334,6 +329,7 @@ class CumulantExtractor:
 ```
 
 **Mathematical Definition:**
+
 ```
 m_pq = E[z^(p-q) * z*^q]
 
@@ -355,7 +351,7 @@ m_20 = compute_moment(signal, 2, 0)
 m_21 = compute_moment(signal, 2, 1)
      = mean(signal^1 * conj(signal)^1)
      = mean(|signal|^2)
-     
+
 # m_42: E[z^2 * z*^2] = E[|z^2|^2]
 m_42 = compute_moment(signal, 4, 2)
      = mean(signal^2 * conj(signal)^2)
@@ -381,6 +377,7 @@ m_42 = compute_moment(signal, 4, 2)
 ```
 
 **Moment Collection:**
+
 - Computes 12 different moments
 - Orders: 2nd (m20, m21, m22), 4th (m40, m41, m42), 6th (m60-m63), 8th (m80, m84)
 - Higher orders capture more complex statistical patterns
@@ -404,6 +401,7 @@ m_42 = compute_moment(signal, 4, 2)
 These formulas come from cumulant theory. Key insights:
 
 1. **C1, C2 (2nd order):** Simple moments
+
    ```
    c1 = m20 = E[z^2]        (variance-like)
    c2 = m21 = E[|z|^2]      (power)
@@ -414,18 +412,17 @@ These formulas come from cumulant theory. Key insights:
    c3 = m40 - 3·m20·m21     (kurtosis correction)
    c4 = m42 - |m20|² - 2·m21²  (cross-term correction)
    ```
-   
 3. **C5-C8 (6th order):** Higher-order shape
    - More complex formulas
    - Cancel lower-order contributions
    - Capture asymmetry and fine structure
-   
 4. **C9, C10 (8th order):** Very high-order statistics
    - Most complex formulas
    - Discriminate subtle differences
    - Computationally expensive but powerful
 
 **Why These Formulas?**
+
 - Based on mathematical cumulant generating function
 - Designed to be **orthogonal** (independent)
 - **Blind to Gaussian noise** (cumulants ≥ 3)
@@ -439,6 +436,7 @@ These formulas come from cumulant theory. Key insights:
 ```
 
 **Final Step:**
+
 - Takes absolute value of each cumulant
 - Returns 10-dimensional feature vector
 - All values are positive (magnitudes)
@@ -456,6 +454,7 @@ class GeneticAlgorithm:
 ```
 
 **Parameters:**
+
 - `n_genes=10`: One weight per cumulant feature
 - `pop_size=100`: 100 candidate solutions (individuals)
 - `generations=50`: Evolve for 50 iterations
@@ -465,7 +464,7 @@ class GeneticAlgorithm:
         modulations = list(features_dict.keys())
         total_distance = 0
         count = 0
-        
+
         for i in range(len(modulations)):
             for j in range(i+1, len(modulations)):
                 lc_i = np.dot(weights, features_dict[modulations[i]])
@@ -473,7 +472,7 @@ class GeneticAlgorithm:
                 distance = np.abs(lc_i - lc_j)
                 total_distance += distance
                 count += 1
-        
+
         return total_distance / count if count > 0 else 0
 ```
 
@@ -481,7 +480,6 @@ class GeneticAlgorithm:
 
 1. `modulations = list(features_dict.keys())`
    - Get list of modulation types: ["BPSK", "QPSK", "QAM", "16-QAM", "64-QAM"]
-   
 2. ```python
    for i in range(len(modulations)):
        for j in range(i+1, len(modulations)):
@@ -489,16 +487,13 @@ class GeneticAlgorithm:
    - Nested loop over all unique pairs
    - For 5 modulations: (0,1), (0,2), (0,3), (0,4), (1,2), (1,3), (1,4), (2,3), (2,4), (3,4)
    - Total: C(5,2) = 10 pairs
-   
 3. `lc_i = np.dot(weights, features_dict[modulations[i]])`
    - Compute weighted sum (linear combination)
    - `np.dot(weights, features)` = w1·c1 + w2·c2 + ... + w10·c10
    - This is the "super-cumulant" value
-   
 4. `distance = np.abs(lc_i - lc_j)`
    - Distance between two modulation types in feature space
    - Larger distance = easier to distinguish
-   
 5. `return total_distance / count`
    - Average distance across all pairs
    - Higher fitness = better weight vector
@@ -509,12 +504,12 @@ class GeneticAlgorithm:
     def optimize(self, features_dict: dict) -> np.ndarray:
         # Initialize population with random weights
         population = np.random.rand(self.pop_size, self.n_genes)
-        
+
         for gen in range(self.generations):
             # Evaluate fitness for each individual
-            fitness_scores = np.array([self.fitness(ind, features_dict) 
+            fitness_scores = np.array([self.fitness(ind, features_dict)
                                       for ind in population])
-            
+
             # Selection: Keep the best
             sorted_indices = np.argsort(fitness_scores)[::-1]  # Descending order
             population = population[sorted_indices]
@@ -526,17 +521,14 @@ class GeneticAlgorithm:
    - Creates 100 × 10 matrix
    - Each row is one individual (weight vector)
    - Values between 0 and 1
-   
 2. `fitness_scores = np.array([self.fitness(ind, features_dict) for ind in population])`
    - Evaluates fitness for all 100 individuals
    - List comprehension over population
    - Returns array of 100 fitness values
-   
 3. `sorted_indices = np.argsort(fitness_scores)[::-1]`
    - `np.argsort()` returns indices that would sort the array
    - `[::-1]` reverses to get descending order (best first)
    - Example: if fitness = [0.5, 0.8, 0.3], sorted_indices = [1, 0, 2]
-   
 4. `population = population[sorted_indices]`
    - Reorders population by fitness
    - Best individuals move to front
@@ -546,7 +538,7 @@ class GeneticAlgorithm:
             n_parents = self.pop_size // 4  # Keep top 25%
             parents = population[:n_parents]
             offspring = []
-            
+
             for _ in range(self.pop_size - n_parents):
                 p1, p2 = parents[np.random.choice(n_parents, 2, replace=False)]
                 crossover_point = np.random.randint(1, self.n_genes)
@@ -558,18 +550,14 @@ class GeneticAlgorithm:
 1. `n_parents = self.pop_size // 4`
    - Keep top 25% (100//4 = 25 best individuals)
    - Discard bottom 75%
-   
 2. `parents = population[:n_parents]`
    - Select first 25 rows (already sorted by fitness)
-   
 3. `p1, p2 = parents[np.random.choice(n_parents, 2, replace=False)]`
    - Randomly pick 2 different parents
    - `replace=False` ensures they're different
-   
 4. `crossover_point = np.random.randint(1, self.n_genes)`
    - Random point between 1 and 9 (inclusive)
    - Example: crossover_point = 5
-   
 5. `child = np.concatenate([p1[:crossover_point], p2[crossover_point:]])`
    - Take first part from parent1, second part from parent2
    - Example:
@@ -586,12 +574,12 @@ class GeneticAlgorithm:
                 if np.random.rand() < 0.1:  # 10% probability
                     mut_idx = np.random.randint(self.n_genes)
                     child[mut_idx] = np.random.rand()
-                
+
                 offspring.append(child)
-            
+
             # Create new population
             population = np.vstack([parents, offspring])
-        
+
         return population[0]  # Return best individual
 ```
 
@@ -600,18 +588,14 @@ class GeneticAlgorithm:
 1. `if np.random.rand() < 0.1:`
    - 10% chance of mutation
    - `np.random.rand()` returns value between 0 and 1
-   
 2. `mut_idx = np.random.randint(self.n_genes)`
    - Random gene index (0-9)
-   
 3. `child[mut_idx] = np.random.rand()`
    - Replace one weight with random value
    - Introduces diversity, prevents premature convergence
-   
 4. `population = np.vstack([parents, offspring])`
    - Combine parents (25) and offspring (75)
    - New population of 100 individuals
-   
 5. `return population[0]`
    - After all generations, return best individual
    - population[0] is the fittest (due to sorting)
@@ -641,16 +625,18 @@ class KNNClassifier:
 **Training Process:**
 
 1. `{mod: np.dot(weights, feats) for mod, feats in features_dict.items()}`
+
    - Dictionary comprehension
    - For each modulation type, compute its super-cumulant
    - Example:
+
      ```python
      features_dict = {
          "BPSK": [c1, c2, ..., c10],
          "QPSK": [c1, c2, ..., c10],
          ...
      }
-     
+
      training_data = {
          "BPSK": w·features_BPSK = 0.234,
          "QPSK": w·features_QPSK = 0.567,
@@ -664,12 +650,12 @@ class KNNClassifier:
 ```python
     def predict(self, features: np.ndarray) -> str:
         lc_test = np.dot(self.optimized_weights, features)
-        
+
         distances = {
-            mod: np.abs(lc_test - lc_train) 
+            mod: np.abs(lc_test - lc_train)
             for mod, lc_train in self.training_data.items()
         }
-        
+
         return min(distances, key=distances.get)
 ```
 
@@ -678,26 +664,25 @@ class KNNClassifier:
 1. `lc_test = np.dot(self.optimized_weights, features)`
    - Compute test signal's super-cumulant
    - Uses same weights as training
-   
 2. ```python
    distances = {
-       mod: np.abs(lc_test - lc_train) 
+       mod: np.abs(lc_test - lc_train)
        for mod, lc_train in self.training_data.items()
    }
    ```
    - Calculate distance to each reference modulation
    - Example:
+
      ```python
      lc_test = 0.654
      training_data = {"BPSK": 0.234, "QPSK": 0.567, ...}
-     
+
      distances = {
          "BPSK": |0.654 - 0.234| = 0.420,
          "QPSK": |0.654 - 0.567| = 0.087,
          ...
      }
      ```
-   
 3. `return min(distances, key=distances.get)`
    - Find modulation with minimum distance
    - `key=distances.get` tells `min()` to compare by value
@@ -724,7 +709,7 @@ def read_root():
 def generate_signal(request: SignalRequest):
     try:
         generator = ModulationGenerator()
-        
+
         # Generate modulated signal
         if request.modulation_type == "BPSK":
             signal = generator.generate_bpsk(request.num_samples)
@@ -750,14 +735,15 @@ def generate_signal(request: SignalRequest):
 ```
 
 **Channel Application:**
+
 - AWGN: Add Gaussian noise only
 - Anything else: Apply Rayleigh fading + noise
 
 ```python
         # Convert to serializable format
-        signal_data = [{"real": float(s.real), "imag": float(s.imag)} 
+        signal_data = [{"real": float(s.real), "imag": float(s.imag)}
                       for s in signal[:500]]
-        
+
         return {
             "modulation_type": request.modulation_type,
             "num_samples": request.num_samples,
@@ -773,10 +759,10 @@ def generate_signal(request: SignalRequest):
    - List comprehension over first 500 samples
    - Converts each complex number to dict
    - `float()` ensures JSON compatibility
-   
 2. Return dict with parameters and signal data
 
 **Why only 500 samples?**
+
 - Reduce JSON response size
 - Faster frontend rendering
 - Still enough for visualization
@@ -789,10 +775,10 @@ def train_classifier(request: TrainingRequest):
     try:
         generator = ModulationGenerator()
         extractor = CumulantExtractor()
-        
+
         modulation_types = ["BPSK", "QPSK", "QAM", "16-QAM", "64-QAM"]
         features_dict = {}
-        
+
         # Generate and extract features for each modulation type
         for mod_type in modulation_types:
             # Generate signal...
@@ -814,7 +800,7 @@ def train_classifier(request: TrainingRequest):
         # Optimize weights using GA
         ga = GeneticAlgorithm()
         optimized_weights = ga.optimize(features_dict)
-        
+
         # Train classifier
         classifier.train(features_dict, optimized_weights)
 ```
@@ -831,7 +817,7 @@ def train_classifier(request: TrainingRequest):
             mod: float(np.dot(optimized_weights, feats))
             for mod, feats in features_dict.items()
         }
-        
+
         return {
             "status": "trained",
             "super_cumulants": super_cumulants,
@@ -841,6 +827,7 @@ def train_classifier(request: TrainingRequest):
 ```
 
 **Response:**
+
 - `super_cumulants`: Reference values for each modulation
 - `weights`: Optimized weight vector
 - `features`: Raw cumulant features (for debugging)
@@ -856,13 +843,14 @@ def classify_signal(request: ClassificationRequest):
 ```
 
 **Prerequisite Check:**
+
 - Verify classifier has been trained
 - Return 400 error if not
 
 ```python
         # Convert signal data from ComplexNumber objects to numpy complex array
         signal = np.array([complex(s.real, s.imag) for s in request.signal_data])
-        
+
         # Extract features
         extractor = CumulantExtractor()
         features = extractor.extract_hocs(signal)
@@ -876,14 +864,14 @@ def classify_signal(request: ClassificationRequest):
 ```python
         # Classify
         prediction = classifier.predict(features)
-        
+
         # Compute confidence
         lc_test = np.dot(classifier.optimized_weights, features)
         distances = {
             mod: float(np.abs(lc_test - lc_train))
             for mod, lc_train in classifier.training_data.items()
         }
-        
+
         min_dist = min(distances.values())
         total_dist = sum(distances.values())
         confidence = 1 - (min_dist / total_dist) if total_dist > 0 else 0
@@ -893,16 +881,15 @@ def classify_signal(request: ClassificationRequest):
 
 1. `prediction = classifier.predict(features)`
    - Get predicted modulation type
-   
 2. Compute distances to all reference types
-   
 3. **Confidence Calculation:**
+
    ```
    confidence = 1 - (min_distance / sum_all_distances)
-   
+
    If min_dist is much smaller than others:
      → confidence close to 1.0 (high)
-   
+
    If all distances similar:
      → confidence close to 0.0 (low)
    ```
@@ -917,6 +904,7 @@ def classify_signal(request: ClassificationRequest):
 ```
 
 **Response:**
+
 - Predicted modulation type
 - Confidence score (0-1)
 - Distances to all references
@@ -927,6 +915,7 @@ def classify_signal(request: ClassificationRequest):
 ## Frontend Code Structure
 
 The frontend is built with:
+
 - **Next.js 14**: React framework with App Router
 - **TypeScript**: Type-safe JavaScript
 - **Tailwind CSS**: Utility-first CSS framework
@@ -947,19 +936,25 @@ The frontend is built with:
 ### State Management
 
 ```typescript
-const [activeTab, setActiveTab] = useState<"generate" | "train" | "classify">("generate");
+const [activeTab, setActiveTab] = useState<"generate" | "train" | "classify">(
+  "generate"
+);
 const [modulationType, setModulationType] = useState("BPSK");
 const [numSamples, setNumSamples] = useState(1024);
 const [snrDb, setSnrDb] = useState(5);
 const [channelType, setChannelType] = useState("AWGN");
 const [signalData, setSignalData] = useState<SignalPoint[]>([]);
 const [loading, setLoading] = useState(false);
-const [classification, setClassification] = useState<ClassificationResult | null>(null);
-const [trainingResult, setTrainingResult] = useState<TrainingResult | null>(null);
+const [classification, setClassification] =
+  useState<ClassificationResult | null>(null);
+const [trainingResult, setTrainingResult] = useState<TrainingResult | null>(
+  null
+);
 const [error, setError] = useState<string | null>(null);
 ```
 
 **State Variables:**
+
 - `activeTab`: Which tab is selected (generate/train/classify)
 - `modulationType`, `numSamples`, `snrDb`, `channelType`: Signal parameters
 - `signalData`: Generated signal samples
@@ -972,39 +967,42 @@ const [error, setError] = useState<string | null>(null);
 
 ```typescript
 const generateSignal = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${API_URL}/generate_signal`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          modulation_type: modulationType,
-          num_samples: numSamples,
-          snr_db: snrDb,
-          channel_type: channelType,
-        }),
-      });
+  setLoading(true);
+  setError(null);
+  try {
+    const response = await fetch(`${API_URL}/generate_signal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        modulation_type: modulationType,
+        num_samples: numSamples,
+        snr_db: snrDb,
+        channel_type: channelType,
+      }),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (Array.isArray(errorData.detail)) {
-          const errorMessages = errorData.detail.map((err: { loc: string[]; msg: string }) => 
-            `${err.loc.join('.')}: ${err.msg}`
-          ).join(', ');
-          throw new Error(`Validation error: ${errorMessages}`);
-        }
-        throw new Error(errorData.detail || "Failed to generate signal");
+    if (!response.ok) {
+      const errorData = await response.json();
+      if (Array.isArray(errorData.detail)) {
+        const errorMessages = errorData.detail
+          .map(
+            (err: { loc: string[]; msg: string }) =>
+              `${err.loc.join(".")}: ${err.msg}`
+          )
+          .join(", ");
+        throw new Error(`Validation error: ${errorMessages}`);
       }
-
-      const data = await response.json();
-      setSignalData(data.signal_data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
+      throw new Error(errorData.detail || "Failed to generate signal");
     }
-  };
+
+    const data = await response.json();
+    setSignalData(data.signal_data);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Unknown error");
+  } finally {
+    setLoading(false);
+  }
+};
 ```
 
 **Error Handling:**
@@ -1012,15 +1010,11 @@ const generateSignal = async () => {
 1. `if (Array.isArray(errorData.detail))`
    - Pydantic validation errors return array
    - Each error has `loc` (field path) and `msg` (message)
-   
 2. Parse and format validation errors:
    ```typescript
-   errorData.detail.map((err) => 
-     `${err.loc.join('.')}: ${err.msg}`
-   ).join(', ')
+   errorData.detail.map((err) => `${err.loc.join(".")}: ${err.msg}`).join(", ");
    ```
    - Example: "body.signal_data.0: Input should be valid complex"
-   
 3. `finally { setLoading(false); }`
    - Always reset loading state, even if error occurred
 
@@ -1059,6 +1053,7 @@ const distanceData = classification
 ## Summary
 
 ### Backend Architecture
+
 ```
 FastAPI Server
 ├── Pydantic Models (validation)
@@ -1071,6 +1066,7 @@ FastAPI Server
 ```
 
 ### Frontend Architecture
+
 ```
 Next.js App
 ├── State Management (React hooks)
@@ -1080,6 +1076,7 @@ Next.js App
 ```
 
 ### Data Flow
+
 ```
 User Input → API Request → Backend Processing → API Response → Frontend Update → UI Render
 ```
@@ -1087,6 +1084,7 @@ User Input → API Request → Backend Processing → API Response → Frontend 
 ---
 
 **Congratulations!** You now understand every part of the AMR system codebase. For more information, see:
+
 - [README.md](./README.md) - System overview and setup
 - [PROCESS_FLOW.md](./PROCESS_FLOW.md) - Algorithm workflow
 - [VISUALIZATION_GUIDE.md](./VISUALIZATION_GUIDE.md) - Chart explanations

@@ -79,6 +79,7 @@ User Input Parameters
 ### Detailed Symbol Generation
 
 #### BPSK (Binary Phase Shift Keying)
+
 ```python
 Input: num_samples = 1024
 Step 1: Generate random bits → [0, 1, 1, 0, 1, ...]
@@ -87,11 +88,12 @@ Output: Complex signal → [-1+0j, +1+0j, +1+0j, -1+0j, ...]
 
 Constellation Points:
   +1 ────●
-         
+
   -1 ●────
 ```
 
 #### QPSK (Quadrature Phase Shift Keying)
+
 ```python
 Input: num_samples = 1024
 Step 1: Generate random symbols (0-3) → [2, 0, 3, 1, ...]
@@ -111,6 +113,7 @@ Constellation:
 ```
 
 #### 16-QAM (16-Quadrature Amplitude Modulation)
+
 ```python
 Input: num_samples = 1024
 Step 1: Generate random symbols (0-15) → [5, 12, 0, 9, ...]
@@ -131,6 +134,7 @@ Constellation (4×4 grid):
 ```
 
 #### 64-QAM
+
 ```python
 Input: num_samples = 1024
 Step 1: Generate random symbols (0-63)
@@ -163,6 +167,7 @@ output = signal + noise
 ```
 
 **Effect on Signal:**
+
 - Adds random perturbations to constellation points
 - Points spread around original positions
 - Higher SNR → tighter clusters
@@ -188,6 +193,7 @@ output = add_awgn(faded_signal, SNR_dB)
 ```
 
 **Effect on Signal:**
+
 - Causes amplitude and phase variations
 - Constellation points rotate and scale randomly
 - More realistic for mobile/wireless channels
@@ -302,6 +308,7 @@ Output: 10-dimensional feature vector
 4. **C9, C10 (8th order)**: Very high-order structure
 
 **Key Properties:**
+
 - Cumulants ≥ 3rd order are **blind to Gaussian noise**
 - Different modulations have **unique cumulant signatures**
 - Robust to phase and frequency offsets
@@ -387,6 +394,7 @@ Generation 50:
 ```
 
 **Interpretation:**
+
 - w2, w9 are large → C2 and C9 are most discriminative
 - w1, w10 are small → C1 and C10 contribute less
 
@@ -504,16 +512,17 @@ Confidence < 0.5  → Low, ambiguous or very noisy
 
 ### Time Complexity
 
-| Operation | Complexity | Typical Time |
-|-----------|------------|--------------|
-| Signal Generation | O(N) | 0.01s |
-| Moment Computation | O(N) | 0.05s |
-| Cumulant Calculation | O(1) | 0.001s |
-| GA Fitness (per individual) | O(M²) | 0.001s |
-| GA Total (50 gen, 100 pop) | O(G·P·M²) | 5-10s |
-| Classification | O(M) | 0.001s |
+| Operation                   | Complexity | Typical Time |
+| --------------------------- | ---------- | ------------ |
+| Signal Generation           | O(N)       | 0.01s        |
+| Moment Computation          | O(N)       | 0.05s        |
+| Cumulant Calculation        | O(1)       | 0.001s       |
+| GA Fitness (per individual) | O(M²)      | 0.001s       |
+| GA Total (50 gen, 100 pop)  | O(G·P·M²)  | 5-10s        |
+| Classification              | O(M)       | 0.001s       |
 
 Where:
+
 - N = number of samples (1024)
 - M = number of modulation types (5)
 - G = generations (50)
@@ -521,12 +530,12 @@ Where:
 
 ### Space Complexity
 
-| Data Structure | Space | Size |
-|----------------|-------|------|
-| Signal array | O(N) | ~8KB |
-| Feature vector | O(F) | 80 bytes |
-| GA population | O(P·F) | ~8KB |
-| Training data | O(M·F) | 400 bytes |
+| Data Structure | Space  | Size      |
+| -------------- | ------ | --------- |
+| Signal array   | O(N)   | ~8KB      |
+| Feature vector | O(F)   | 80 bytes  |
+| GA population  | O(P·F) | ~8KB      |
+| Training data  | O(M·F) | 400 bytes |
 
 ---
 
@@ -587,16 +596,19 @@ Catch Exception:
 ## Performance Optimization Tips
 
 ### For Better Training:
+
 1. **Use more samples** (2048 or 4096) for more stable features
 2. **Increase GA generations** (100+) for better convergence
 3. **Larger population** (200+) for exploring more solutions
 
 ### For Better Classification:
+
 1. **Higher SNR** during training (10+ dB)
 2. **Match channel types** between training and testing
 3. **Use same sample count** for consistency
 
 ### For Faster Processing:
+
 1. **Train once, classify many times** (model persists in memory)
 2. **Use fewer samples** (512) for quick testing
 3. **Reduce GA generations** (25) for faster training (slight accuracy loss)

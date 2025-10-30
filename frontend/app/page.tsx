@@ -517,8 +517,8 @@ const AMRSystem: React.FC = () => {
                 <ResponsiveContainer width="100%" height={300}>
                   <ScatterChart>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" dataKey="x" name="In-Phase" />
-                    <YAxis type="number" dataKey="y" name="Quadrature" />
+                    <XAxis type="number" dataKey="x" name="In-Phase" label={{ value: 'In-Phase (I)', position: 'insideBottom', offset: -5 }} />
+                    <YAxis type="number" dataKey="y" name="Quadrature" label={{ value: 'Quadrature (Q)', angle: -90, position: 'insideLeft' }} />
                     <Tooltip cursor={{ strokeDasharray: "3 3" }} />
                     <Scatter
                       name="Signal"
@@ -545,8 +545,8 @@ const AMRSystem: React.FC = () => {
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={timeSeriesData.slice(0, 200)}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="index" />
-                    <YAxis />
+                    <XAxis dataKey="index" label={{ value: 'Sample Index', position: 'insideBottom', offset: -5 }} />
+                    <YAxis label={{ value: 'Amplitude', angle: -90, position: 'insideLeft' }} />
                     <Tooltip />
                     <Legend />
                     <Line
@@ -579,8 +579,8 @@ const AMRSystem: React.FC = () => {
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={distanceData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="modulation" />
-                    <YAxis />
+                    <XAxis dataKey="modulation" label={{ value: 'Modulation Type', position: 'insideBottom', offset: -5 }} />
+                    <YAxis label={{ value: 'Euclidean Distance', angle: -90, position: 'insideLeft' }} />
                     <Tooltip />
                     <Bar dataKey="distance" fill="#8b5cf6" />
                   </BarChart>
@@ -602,8 +602,8 @@ const AMRSystem: React.FC = () => {
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={superCumulantData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="modulation" />
-                    <YAxis />
+                    <XAxis dataKey="modulation" label={{ value: 'Modulation Type', position: 'insideBottom', offset: -5 }} />
+                    <YAxis label={{ value: 'Super-Cumulant Value', angle: -90, position: 'insideLeft' }} />
                     <Tooltip />
                     <Bar dataKey="value" fill="#10b981" />
                   </BarChart>
@@ -625,8 +625,8 @@ const AMRSystem: React.FC = () => {
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={superCumulantData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="modulation" />
-                    <YAxis />
+                    <XAxis dataKey="modulation" label={{ value: 'Modulation Type', position: 'insideBottom', offset: -5 }} />
+                    <YAxis label={{ value: 'Super-Cumulant Value', angle: -90, position: 'insideLeft' }} />
                     <Tooltip />
                     <Bar dataKey="value" fill="#10b981" />
                   </BarChart>
@@ -689,8 +689,8 @@ const AMRSystem: React.FC = () => {
                     }))}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="feature" />
-                    <YAxis />
+                    <XAxis dataKey="feature" label={{ value: 'Cumulant Feature', position: 'insideBottom', offset: -5 }} />
+                    <YAxis label={{ value: 'Weight Value', angle: -90, position: 'insideLeft' }} />
                     <Tooltip />
                     <Bar dataKey="weight" fill="#f59e0b" />
                   </BarChart>

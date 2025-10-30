@@ -38,9 +38,16 @@ interface TrainingResult {
   features: Record<string, number[]>;
 }
 
+interface TrainingProgress {
+  stage: string;
+  modulation?: string;
+  generation?: number;
+  fitness?: number;
+}
+
 const AMRSystem: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"generate" | "train" | "classify">(
-    "generate"
+  const [activeTab, setActiveTab] = useState<"train" | "generate" | "classify">(
+    "train"
   );
   const [modulationType, setModulationType] = useState("BPSK");
   const [numSamples, setNumSamples] = useState(1024);
@@ -54,6 +61,10 @@ const AMRSystem: React.FC = () => {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const [trainingProgress, setTrainingProgress] = useState<TrainingProgress[]>(
+    []
+  );
+  const [trainingStage, setTrainingStage] = useState<string>("");
 
   const modulationTypes = ["BPSK", "QPSK", "QAM", "16-QAM", "64-QAM"];
 
@@ -98,7 +109,39 @@ const AMRSystem: React.FC = () => {
   const trainClassifier = async () => {
     setLoading(true);
     setError(null);
+    setTrainingProgress([]);
+    setTrainingStage("");
+
     try {
+      // Simulate progress updates
+      const progressSteps = [
+        "Initializing training...",
+        "Generating BPSK training signals...",
+        "Generating QPSK training signals...",
+        "Generating QAM training signals...",
+        "Generating 16-QAM training signals...",
+        "Generating 64-QAM training signals...",
+        "Extracting higher-order cumulants...",
+        "Running genetic algorithm optimization...",
+        "Training KNN classifier...",
+        "Finalizing model...",
+      ];
+
+      let currentStep = 0;
+      const progressInterval = setInterval(() => {
+        if (currentStep < progressSteps.length) {
+          setTrainingStage(progressSteps[currentStep]);
+          setTrainingProgress((prev) => [
+            ...prev,
+            {
+              stage: progressSteps[currentStep],
+              modulation: modulationTypes[currentStep - 1] || undefined,
+            },
+          ]);
+          currentStep++;
+        }
+      }, 800);
+
       const response = await fetch(`${API_URL}/train_classifier`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,6 +151,8 @@ const AMRSystem: React.FC = () => {
           channel_type: channelType,
         }),
       });
+
+      clearInterval(progressInterval);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -125,6 +170,7 @@ const AMRSystem: React.FC = () => {
 
       const data = await response.json();
       setTrainingResult(data);
+      setTrainingStage("Training completed successfully!");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -226,26 +272,26 @@ const AMRSystem: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-xl mb-6">
           <div className="flex border-b">
             <button
-              onClick={() => setActiveTab("generate")}
-              className={`flex-1 py-4 px-6 font-semibold transition-all ${
-                activeTab === "generate"
-                  ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-tl-2xl"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <Activity className="w-5 h-5 inline mr-2" />
-              Generate Signal
-            </button>
-            <button
               onClick={() => setActiveTab("train")}
               className={`flex-1 py-4 px-6 font-semibold transition-all ${
                 activeTab === "train"
-                  ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+                  ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-tl-2xl"
                   : "text-gray-600 hover:bg-gray-50"
               }`}
             >
               <Brain className="w-5 h-5 inline mr-2" />
               Train Classifier
+            </button>
+            <button
+              onClick={() => setActiveTab("generate")}
+              className={`flex-1 py-4 px-6 font-semibold transition-all ${
+                activeTab === "generate"
+                  ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <Activity className="w-5 h-5 inline mr-2" />
+              Generate Signal
             </button>
             <button
               onClick={() => setActiveTab("classify")}
@@ -389,10 +435,35 @@ const AMRSystem: React.FC = () => {
                     {loading ? "Training..." : "Train Classifier"}
                   </button>
 
-                  {trainingResult && (
-                    <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                      <p className="text-green-800 font-semibold">
-                        ✓ Classifier Trained Successfully
+                  {/* Training Progress */}
+                  {loading && trainingStage && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <p className="text-sm font-semibold text-blue-800">
+                          {trainingStage}
+                        </p>
+                      </div>
+                      <div className="w-full bg-blue-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${(trainingProgress.length / 10) * 100}%`,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {trainingResult && !loading && (
+                    <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <p className="text-green-800 font-semibold flex items-center gap-2">
+                        <span className="text-xl">✓</span>
+                        Classifier Trained Successfully
+                      </p>
+                      <p className="text-xs text-green-700 mt-1">
+                        {modulationTypes.length} modulations • {numSamples}{" "}
+                        samples
                       </p>
                     </div>
                   )}
@@ -457,6 +528,11 @@ const AMRSystem: React.FC = () => {
                     />
                   </ScatterChart>
                 </ResponsiveContainer>
+                <p className="text-xs text-gray-600 mt-2">
+                  📊 Shows the in-phase (I) and quadrature (Q) components of the
+                  modulated signal. Each point represents a symbol in the
+                  complex plane.
+                </p>
               </div>
             )}
 
@@ -487,11 +563,15 @@ const AMRSystem: React.FC = () => {
                     />
                   </LineChart>
                 </ResponsiveContainer>
+                <p className="text-xs text-gray-600 mt-2">
+                  ⏱️ Time-domain representation showing real (I) and imaginary
+                  (Q) signal components over the first 200 samples.
+                </p>
               </div>
             )}
 
             {/* Classification Distances */}
-            {classification && (
+            {classification && activeTab === "classify" && (
               <div className="bg-white rounded-2xl shadow-xl p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">
                   Classification Distances
@@ -505,14 +585,19 @@ const AMRSystem: React.FC = () => {
                     <Bar dataKey="distance" fill="#8b5cf6" />
                   </BarChart>
                 </ResponsiveContainer>
+                <p className="text-xs text-gray-600 mt-2">
+                  🎯 Weighted Euclidean distances to each reference modulation.
+                  Lower distance = better match. The shortest bar indicates the
+                  predicted class.
+                </p>
               </div>
             )}
 
-            {/* Super Cumulants */}
-            {trainingResult && (
+            {/* Super Cumulants - Classify Tab */}
+            {classification && activeTab === "classify" && (
               <div className="bg-white rounded-2xl shadow-xl p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  Super-Cumulant Features
+                  Super-Cumulant Feature Comparison
                 </h3>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={superCumulantData}>
@@ -523,6 +608,158 @@ const AMRSystem: React.FC = () => {
                     <Bar dataKey="value" fill="#10b981" />
                   </BarChart>
                 </ResponsiveContainer>
+                <p className="text-xs text-gray-600 mt-2">
+                  🔬 Weighted sum of all 10 cumulant features for each reference
+                  modulation. Shows how close the input signal is to each
+                  trained class.
+                </p>
+              </div>
+            )}
+
+            {/* Super Cumulants - Training Tab */}
+            {trainingResult && activeTab === "train" && (
+              <div className="bg-white rounded-2xl shadow-xl p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                  Super-Cumulant Reference Features
+                </h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={superCumulantData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="modulation" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#10b981" />
+                  </BarChart>
+                </ResponsiveContainer>
+                <p className="text-xs text-gray-600 mt-2">
+                  🔬 Weighted sum of all 10 cumulant features for each
+                  modulation type. These are the reference points stored in the
+                  KNN classifier.
+                </p>
+              </div>
+            )}
+
+            {/* Training Progress Timeline */}
+            {activeTab === "train" && trainingProgress.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-xl p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                  Training Progress Timeline
+                </h3>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {trainingProgress.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <div
+                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                          idx === trainingProgress.length - 1
+                            ? "bg-green-500 animate-pulse"
+                            : "bg-blue-500"
+                        }`}
+                      >
+                        <span className="text-white text-xs font-bold">
+                          {idx + 1}
+                        </span>
+                      </div>
+                      <div className="flex-1 pb-3 border-b border-gray-200">
+                        <p className="text-sm font-medium text-gray-800">
+                          {step.stage}
+                        </p>
+                        {step.modulation && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Processing {step.modulation}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Optimized Weights Visualization */}
+            {trainingResult && activeTab === "train" && (
+              <div className="bg-white rounded-2xl shadow-xl p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                  Optimized Feature Weights (GA Output)
+                </h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart
+                    data={trainingResult.weights.map((w, idx) => ({
+                      feature: `C${idx + 1}`,
+                      weight: w,
+                    }))}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="feature" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="weight" fill="#f59e0b" />
+                  </BarChart>
+                </ResponsiveContainer>
+                <p className="text-xs text-gray-600 mt-2">
+                  ⚖️ GA-optimized weights for each cumulant feature (C1-C10).
+                  Higher weights indicate more discriminative features for
+                  classification.
+                </p>
+              </div>
+            )}
+
+            {/* Features Heatmap */}
+            {trainingResult && activeTab === "train" && (
+              <div className="bg-white rounded-2xl shadow-xl p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                  Extracted Cumulant Features (HOCs)
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="px-3 text-gray-500 py-2 text-left font-semibold">
+                          Modulation
+                        </th>
+                        {Array.from({ length: 10 }, (_, i) => (
+                          <th
+                            key={i}
+                            className="px-2 py-2 text-gray-500 text-center font-semibold"
+                          >
+                            C{i + 1}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(trainingResult.features).map(
+                        ([mod, feats]) => (
+                          <tr key={mod} className="border-b hover:bg-gray-50">
+                            <td className="px-3 py-2 font-medium text-gray-800">
+                              {mod}
+                            </td>
+                            {(feats as number[]).map((feat, idx) => (
+                              <td
+                                key={idx}
+                                className="px-2 py-2 text-center"
+                                style={{
+                                  backgroundColor: `rgba(59, 130, 246, ${
+                                    feat / Math.max(...(feats as number[]))
+                                  })`,
+                                  color:
+                                    feat / Math.max(...(feats as number[])) >
+                                    0.5
+                                      ? "white"
+                                      : "black",
+                                }}
+                              >
+                                {feat.toFixed(2)}
+                              </td>
+                            ))}
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">
+                  Color intensity shows relative feature magnitude
+                </p>
               </div>
             )}
           </div>
